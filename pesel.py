@@ -86,6 +86,14 @@ async def main():
 
 
 
-if __name__ == '__main__':
+def teckst():
+    from plugin import Plugin
+    import time
+    p = Plugin("test")
+    while True:
+        p.test()
+        time.sleep(1.0)
 
-    asyncio.run(main())
+if __name__ == '__main__':
+    # asyncio.run(main())
+    teckst()

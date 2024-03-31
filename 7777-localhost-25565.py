@@ -14,8 +14,8 @@ counter = 0
 def common():
     global counter
     counter += 1
-    if counter >= 100:
-        exit(0)
+    # if counter >= 100:
+    #     exit(0)
 
 def print_bytes(data: bytes):
     for b in data:
