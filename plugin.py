@@ -6,24 +6,21 @@ import os
 
 Plugin: typing.TypeAlias = types.ModuleType
 
-# REQUIRED_APIS = [
-#     "request_bytes",
-#     "handle_data"
-#     "on_reload",
-# ]
-
+# plugins should define these
 REQUIRED_APIS = [
-    "test"
+    "on_reload",    # function(old: Plugin)
+    "request_data", # function() -> int
+    "handle_data"   # function(data: bytes) -> Option[bytes]
 ]
 
 class Plugin:
-    def __init__(self, path: str):
-        self.path = path + ".py"
+    def __init__(self, module_name: str):
+        self.module_name = module_name
+        self.path = module_name + ".py"
         self.timestamp = 0
+        self.module = None
 
-        self.module = importlib.import_module(path)
-        self.__validate()
-        self.__emplace_apis()
+        self.__request_reload()
 
     # returns True if the timestamp is newer, as well as updating the saved timestamp
     # returns False otherwise
@@ -43,7 +40,7 @@ class Plugin:
     def __emplace_apis(self):
         def make_wrapper(func_name: str):
             def wrapper(*args, **kwargs):
-                self.__refresh()
+                self.__request_reload()
                 func = getattr(self.module, func_name)
                 return func(*args, **kwargs)
             return wrapper
@@ -51,7 +48,16 @@ class Plugin:
         for api in REQUIRED_APIS:
             setattr(self, api, make_wrapper(api))
 
-    def __refresh(self):
+    def __request_reload(self):
         if not self.__check_and_update_timestamp():
             return
-        importlib.reload(self.module)
+        old_module = self.module
+        self.module = importlib.import_module(self.module_name)
+        self.__validate()
+        self.__emplace_apis()
+        if not old_module is None:
+            # pylint: disable=no-member
+            self.on_reload(old_module)
+
+
+

@@ -91,7 +91,8 @@ def teckst():
     import time
     p = Plugin("test")
     while True:
-        p.test()
+        # pylint: disable=no-member
+        p.request_data()
         time.sleep(1.0)
 
 if __name__ == '__main__':
