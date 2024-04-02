@@ -14,9 +14,9 @@ REQUIRED_APIS = [
 ]
 
 class Plugin:
-    def __init__(self, module_name: str):
-        self.module_name = module_name
-        self.path = module_name + ".py"
+    def __init__(self, *path):
+        self.module_name = ".".join(path)
+        self.path = "/".join(path) + ".py"
         self.timestamp = 0
         self.module = None
 
@@ -35,7 +35,7 @@ class Plugin:
     def __validate(self):
         for api in REQUIRED_APIS:
             if not hasattr(self.module, api):
-                raise AttributeError
+                raise AttributeError(f"Module {self.module_name} missing required API: {api}")
     
     def __emplace_apis(self):
         def make_wrapper(func_name: str):

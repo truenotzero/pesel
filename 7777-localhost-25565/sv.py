@@ -8,29 +8,25 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-counter = 0
-
-
-def common():
-    global counter
-    counter += 1
-    # if counter >= 100:
-    #     exit(0)
-
-def print_bytes(data: bytes):
+def print_bytes(prefix: str, data: bytes):
+    out = prefix + '\n'
     for b in data:
         n = int(b)
         c = chr(n)
-        print(f'int: {n} hex: {n:#x} char: {c}')
+        prefix += f"\tint: {n} hex: {n:#x} char: {c}\n"
+    print(out)
 
-def handle_cl_packet(data: bytes) -> bytes:
-    common()
-    print(f'client -> server:')
-    print_bytes(data)
-    return data
+def on_reload(old_plugin):
+    print('server: reloaded!')
+    print('server: reloaded!')
+    print('server: reloaded!')
+    print('server: reloaded!')
+    print('server: reloaded!')
+    print('server: reloaded!')
 
-def handle_sv_packet(data: bytes) -> bytes:
-    common()
-    print(f'server -> client:')
-    print_bytes(data)
-    return data
+def request_data() -> int:
+    return 1024
+
+def handle_data(data: bytes):
+    # print_bytes('server -> client', data)
+    pass

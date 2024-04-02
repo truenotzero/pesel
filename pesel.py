@@ -1,4 +1,3 @@
-#!/bin/python
 """
 Copyright 2024 truenotzero
 
@@ -11,8 +10,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 import sys
 import asyncio
-import importlib
-from typing import Callable
+from plugin import Plugin
 
 # parse command line args to configure local socket & remote endpoint
 
@@ -33,15 +31,26 @@ def read_config() -> tuple[int, str, int]:
         return None, None, None
 
 
-async def bridge(left_rx: asyncio.StreamReader, right_tx: asyncio.StreamWriter, handler: Callable[[bytes], bytes]):
-    while True:
-        input_byte = await left_rx.read(1)
-        if input_byte:
-            # process by the plugin
-            output_byte = handler(input_byte)
-            right_tx.write(output_byte)
-        else:
-            return
+async def bridge(left_rx: asyncio.StreamReader, right_tx: asyncio.StreamWriter, handler: Plugin, do_close: asyncio.Event):
+    try:
+        while not do_close.is_set():
+            data = await left_rx.read(handler.request_data())
+            if data:
+                # process by the plugin
+                output = handler.handle_data(data) or data
+                right_tx.write(output)
+            else:
+                break
+    except Exception as e:
+        print(f"Terminating bridge, caught exception: {e}")
+        do_close.set()
+
+
+def load_plugin(*path) -> Plugin:
+    try:
+        return Plugin(*path)
+    except (ModuleNotFoundError, AttributeError) as e:
+        raise RuntimeError(e) from e
 
 
 async def on_connect(local_port: int, remote_address: str, remote_port: int, local_rx: asyncio.StreamReader, local_tx: asyncio.StreamWriter):
@@ -50,18 +59,18 @@ async def on_connect(local_port: int, remote_address: str, remote_port: int, loc
 
     # create plugin
     # the plugin name should be in the format
-    # <local-port>-<remote-address>-<remote-port>
-    importlib.invalidate_caches()
-    plugin = importlib.import_module(f"{local_port}-{remote_address}-{remote_port}")
-
-    ltr_handler = plugin.handle_cl_packet
-    rtl_handler = plugin.handle_sv_packet
+    # <local-port>-<remote-address>-<remote-port>/sv.py for server handler
+    # <local-port>-<remote-address>-<remote-port>/cl.py for client handler
+    base = f"{local_port}-{remote_address}-{remote_port}"
+    ltr_handler = load_plugin(base, "cl")
+    rtl_handler = load_plugin(base, "sv")
 
     # async
     # read all input from client, forward to server
     # read all input from server, forward to client
-    local_to_remote = bridge(local_rx, remote_tx, ltr_handler)
-    remote_to_local = bridge(remote_rx, local_tx, rtl_handler)
+    do_close = asyncio.Event()
+    local_to_remote = bridge(local_rx, remote_tx, ltr_handler, do_close)
+    remote_to_local = bridge(remote_rx, local_tx, rtl_handler, do_close)
 
     await asyncio.gather(local_to_remote, remote_to_local)
 
@@ -96,5 +105,4 @@ def teckst():
         time.sleep(1.0)
 
 if __name__ == '__main__':
-    # asyncio.run(main())
-    teckst()
+    asyncio.run(main())
